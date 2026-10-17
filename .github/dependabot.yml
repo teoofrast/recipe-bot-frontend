@@ -7,11 +7,22 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Types must match the Node runtime (24 LTS).
+      - dependency-name: '@types/node'
+        versions: ['>=25']
+      # Major TypeScript upgrades are done deliberately, not by Dependabot.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Stay on Node LTS (24); odd/current releases are not LTS.
+      - dependency-name: node
+        versions: ['>=25']
 
   - package-ecosystem: github-actions
     directory: /
