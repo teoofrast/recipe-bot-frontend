@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
