@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ImportJob } from '../api/types'
-import { isFinished, loadJobs, lost, saveJobs } from './importStatus'
+import { fadesAway, isFinished, loadJobs, lost, saveJobs } from './importStatus'
 
 function job(
   id: string,
@@ -58,5 +58,14 @@ describe('imports across a page reload', () => {
 
     expect(isFinished(gone)).toBe(true)
     expect(gone.error).toContain('бэкенд перезапускали')
+  })
+})
+
+describe('finished import notices', () => {
+  it('go away by themselves unless something failed', () => {
+    expect(fadesAway(job('a', 'done'))).toBe(true)
+    expect(fadesAway(job('a', 'no_recipe'))).toBe(true)
+    expect(fadesAway(job('a', 'failed'))).toBe(false)
+    expect(fadesAway(job('a', 'watching'))).toBe(false)
   })
 })

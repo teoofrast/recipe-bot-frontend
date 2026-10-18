@@ -13,6 +13,6 @@ describe('App', () => {
   })
 
   it('names every import status', () => {
-    expect(Object.keys(STATUS_TEXT)).toHaveLength(8)
+    expect(Object.keys(STATUS_TEXT)).toHaveLength(9)
   })
 })

@@ -4,6 +4,7 @@ export const STATUS_TEXT: Record<ImportStatus, string> = {
   queued: 'в очереди',
   reading: 'читаю описание и субтитры…',
   transcribing: 'распознаю речь…',
+  watching: 'смотрю видео…',
   extracting: 'извлекаю рецепт…',
   saving: 'сохраняю…',
   done: 'готово',
@@ -18,6 +19,14 @@ export function isFinished(job: ImportJob): boolean {
     job.status === 'failed'
   )
 }
+
+/** A saved recipe (or a video without one) needs no attention: its notice goes away by itself.
+ * A failure stays until closed, so that it is not missed. */
+export function fadesAway(job: ImportJob): boolean {
+  return job.status === 'done' || job.status === 'no_recipe'
+}
+
+export const FADE_AFTER_MS = 15_000
 
 /** The backend keeps imports in memory: after its restart an import is gone. */
 export function lost(job: ImportJob): ImportJob {
