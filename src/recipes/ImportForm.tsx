@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
-import { api, errorText } from '../api/client'
-import type { ImportJob } from '../api/types'
-import { STATUS_TEXT, isFinished } from './importStatus'
+import { ApiError, api, errorText } from '../api/client'
+import {
+  KEPT_JOBS,
+  STATUS_TEXT,
+  isFinished,
+  loadJobs,
+  lost,
+  saveJobs,
+} from './importStatus'
 
 const POLL_MS = 1500
 
@@ -15,7 +21,13 @@ export function ImportForm({ onImported, onOpenRecipe }: Props) {
   const [url, setUrl] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [jobs, setJobs] = useState<ImportJob[]>([])
+  const [jobs, setJobs] = useState(loadJobs)
+  // Imports finished before a reload are already in the recipe list.
+  const [told] = useState(
+    () => new Set(jobs.filter(isFinished).map((job) => job.id)),
+  )
+
+  useEffect(() => saveJobs(jobs), [jobs])
 
   const running = jobs.filter((job) => !isFinished(job)).map((job) => job.id)
   const runningKey = running.join(',')
@@ -24,31 +36,31 @@ export function ImportForm({ onImported, onOpenRecipe }: Props) {
   useEffect(() => {
     if (!runningKey) return
     const timer = setInterval(async () => {
-      const updates = await Promise.allSettled(
-        runningKey.split(',').map(api.getImport),
-      )
-      const fresh = updates.flatMap((result) =>
-        result.status === 'fulfilled' ? [result.value] : [],
-      )
+      const ids = runningKey.split(',')
+      const updates = await Promise.allSettled(ids.map(api.getImport))
       setJobs((current) =>
-        current.map(
-          (job) => fresh.find((update) => update.id === job.id) ?? job,
-        ),
+        current.map((job) => {
+          const update = updates[ids.indexOf(job.id)]
+          if (!update) return job
+          if (update.status === 'fulfilled') return update.value
+          const gone =
+            update.reason instanceof ApiError && update.reason.status === 404
+          return gone ? lost(job) : job // a network hiccup: ask again next time
+        }),
       )
     }, POLL_MS)
     return () => clearInterval(timer)
   }, [runningKey])
 
   // Tells about each saved recipe once, so that the list can refresh.
-  const told = useRef(new Set<string>())
   useEffect(() => {
     for (const job of jobs) {
-      if (job.status === 'done' && job.recipe_id && !told.current.has(job.id)) {
-        told.current.add(job.id)
+      if (job.status === 'done' && job.recipe_id && !told.has(job.id)) {
+        told.add(job.id)
         onImported(job.recipe_id)
       }
     }
-  }, [jobs, onImported])
+  }, [jobs, told, onImported])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -56,7 +68,7 @@ export function ImportForm({ onImported, onOpenRecipe }: Props) {
     setError(null)
     try {
       const job = await api.createImport(url.trim())
-      setJobs((current) => [job, ...current].slice(0, 5))
+      setJobs((current) => [job, ...current].slice(0, KEPT_JOBS))
       setUrl('')
     } catch (failure) {
       setError(errorText(failure))
