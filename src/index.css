@@ -342,7 +342,27 @@ aside h2:not(:first-child) {
   font-size: 0.85rem;
 }
 
+.job {
+  position: relative;
+}
+
+.job .dismiss {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.3rem;
+  padding: 0 0.3rem;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.job .dismiss:hover {
+  color: var(--text);
+}
+
 .job-url {
+  padding-right: 1.2rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

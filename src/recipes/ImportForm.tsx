@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { ApiError, api, errorText } from '../api/client'
 import {
+  FADE_AFTER_MS,
   KEPT_JOBS,
   STATUS_TEXT,
+  fadesAway,
   isFinished,
   loadJobs,
   lost,
@@ -28,6 +30,33 @@ export function ImportForm({ onImported, onOpenRecipe }: Props) {
   )
 
   useEffect(() => saveJobs(jobs), [jobs])
+
+  const dismiss = (id: string) =>
+    setJobs((current) => current.filter((job) => job.id !== id))
+
+  // Each finished import fades on its own timer, counted from when the page saw it finish
+  // (after a reload: from the reload).
+  const fading = useRef(new Map<string, number>())
+  useEffect(() => {
+    for (const job of jobs) {
+      if (fadesAway(job) && !fading.current.has(job.id)) {
+        fading.current.set(
+          job.id,
+          window.setTimeout(() => {
+            fading.current.delete(job.id)
+            dismiss(job.id)
+          }, FADE_AFTER_MS),
+        )
+      }
+    }
+  }, [jobs])
+  useEffect(() => {
+    const timers = fading.current
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+      timers.clear()
+    }
+  }, [])
 
   const running = jobs.filter((job) => !isFinished(job)).map((job) => job.id)
   const runningKey = running.join(',')
@@ -123,6 +152,17 @@ export function ImportForm({ onImported, onOpenRecipe }: Props) {
                 )}
               </span>
               {job.error && <span className="error">{job.error}</span>}
+              {isFinished(job) && (
+                <button
+                  type="button"
+                  className="dismiss"
+                  onClick={() => dismiss(job.id)}
+                  aria-label="Закрыть"
+                  title="Закрыть"
+                >
+                  ×
+                </button>
+              )}
             </li>
           ))}
         </ul>

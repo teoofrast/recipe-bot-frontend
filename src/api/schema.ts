@@ -84,7 +84,8 @@ export interface paths {
     }
     /**
      * Get Import
-     * @description queued → reading → [transcribing] → extracting → saving → done | no_recipe | failed.
+     * @description queued → reading → [transcribing] → extracting → [transcribing / watching → extracting]
+     *     → saving → done | no_recipe | failed.
      */
     get: operations['get_import_imports__job_id__get']
     put?: never
@@ -295,6 +296,7 @@ export interface components {
       | 'queued'
       | 'reading'
       | 'transcribing'
+      | 'watching'
       | 'extracting'
       | 'saving'
       | 'done'
